@@ -137,3 +137,9 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Firebase service account secret
+firebase/serviceAccountKey.json
+
+# Backend environment file
+backend/.env
