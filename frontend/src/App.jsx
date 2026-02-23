@@ -61,7 +61,7 @@
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Login from "./pages/Login";
+import Home from "./pages/Home";
 import Register from "./pages/Register";
 
 import JobSeekerDashboard from "./pages/jobseeker/JobSeekerDashboard";
@@ -78,8 +78,10 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public Routes - Smart redirect if already logged in */}
-          <Route path="/" element={<PublicRoute />} />
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+
+          {/* Smart redirect if already logged in */}
           <Route path="/login" element={<PublicRoute />} />
           <Route path="/register" element={<Register />} />
 
