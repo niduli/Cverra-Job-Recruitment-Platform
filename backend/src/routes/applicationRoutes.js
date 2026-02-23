@@ -43,5 +43,4 @@ router.get(
   getMyApplications
 );
 
-
 export default router;

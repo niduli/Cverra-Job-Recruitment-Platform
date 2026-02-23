@@ -1,10 +1,131 @@
+// import firestoreService from "../services/firestoreService.js";
+// import {
+//   collection as jobCollection,
+//   createJobModel,
+// } from "../models/jobModel.js";
+
+// // POST /api/jobs
+// export const createJob = async (req, res, next) => {
+//   try {
+//     const {
+//       title,
+//       description,
+//       skills,
+//       experienceLevel,
+//       location,
+//       jobType,
+//       salaryRange,
+//     } = req.body;
+
+//     if (!title || !description) {
+//       return res.status(400).json({
+//         error: "Title and description are required.",
+//       });
+//     }
+
+//     // employer ID from token
+//     const employerId = req.user.userId;
+
+//     const job = createJobModel({
+//       title,
+//       description,
+//       skills,
+//       experienceLevel,
+//       location,
+//       jobType,
+//       salaryRange,
+//       employerId,
+//     });
+
+//     await firestoreService.createDocument(
+//       jobCollection,
+//       job.id,
+//       job
+//     );
+
+//     res.status(201).json({
+//       message: "Job created successfully",
+//       jobId: job.id,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+// // GET /api/jobs
+// export const getAllJobs = async (req, res, next) => {
+//   try {
+//     const jobs = await firestoreService.getAllDocuments(jobCollection);
+
+//     res.json({
+//       success: true,
+//       count: jobs.length,
+//       data: jobs,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
 import firestoreService from "../services/firestoreService.js";
 import {
   collection as jobCollection,
   createJobModel,
 } from "../models/jobModel.js";
+import { collection as userCollection } from "../models/userModel.js";
+import { getJobRecommendations } from "../services/mlJobRecommendService.js";
 
+
+// =============================
 // POST /api/jobs
+// =============================
+// export const createJob = async (req, res, next) => {
+//   try {
+//     const {
+//       title,
+//       description,
+//       skills,
+//       experienceLevel,
+//       location,
+//       jobType,
+//       salaryRange,
+//     } = req.body;
+
+//     if (!title || !description) {
+//       return res.status(400).json({
+//         error: "Title and description are required.",
+//       });
+//     }
+
+//     const employerId = req.user.userId;
+
+//     const job = createJobModel({
+//       title,
+//       description,
+//       skills,
+//       experienceLevel,
+//       location,
+//       jobType,
+//       salaryRange,
+//       employerId,
+//     });
+
+//     await firestoreService.createDocument(
+//       jobCollection,
+//       job.id,
+//       job
+//     );
+
+//     res.status(201).json({
+//       message: "Job created successfully",
+//       jobId: job.id,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 export const createJob = async (req, res, next) => {
   try {
     const {
@@ -23,8 +144,33 @@ export const createJob = async (req, res, next) => {
       });
     }
 
-    // employer ID from token
     const employerId = req.user.userId;
+
+    // 🔍 Fetch employer from Firestore
+    const employer = await firestoreService.getDocument(
+      userCollection,
+      employerId
+    );
+
+    if (!employer) {
+      return res.status(404).json({
+        error: "Employer not found.",
+      });
+    }
+
+    // 🚫 Ensure only employers can create jobs
+    if (employer.role !== "employer") {
+      return res.status(403).json({
+        error: "Only employers can create jobs.",
+      });
+    }
+
+    // 🚫 Enforce admin approval
+    if (!employer.approved) {
+      return res.status(403).json({
+        error: "Employer account not approved by admin.",
+      });
+    }
 
     const job = createJobModel({
       title,
@@ -44,6 +190,7 @@ export const createJob = async (req, res, next) => {
     );
 
     res.status(201).json({
+      success: true,
       message: "Job created successfully",
       jobId: job.id,
     });
@@ -52,7 +199,10 @@ export const createJob = async (req, res, next) => {
   }
 };
 
+
+// =============================
 // GET /api/jobs
+// =============================
 export const getAllJobs = async (req, res, next) => {
   try {
     const jobs = await firestoreService.getAllDocuments(jobCollection);
@@ -62,6 +212,78 @@ export const getAllJobs = async (req, res, next) => {
       count: jobs.length,
       data: jobs,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// =============================
+// GET /api/jobs/recommended
+// =============================
+export const getRecommendedJobs = async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    // Get full candidate profile
+    const profile = await firestoreService.getDocument(
+      userCollection,
+      user.userId
+    );
+
+    if (!profile) {
+      return res.status(404).json({
+        error: "Profile not found",
+      });
+    }
+
+    // Only recommend active jobs
+    const jobs = await firestoreService.queryDocuments(
+      jobCollection,
+      "status",
+      "==",
+      "active"
+    );
+
+    if (!jobs.length) {
+      return res.json({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    }
+
+    // Call ML recommendation service
+    const result = await getJobRecommendations(profile, jobs);
+
+    if (!result.recommended_jobs) {
+      return res.json({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    }
+
+    // Map ML scores back to job objects
+    const recommended = result.recommended_jobs.map((rec) => {
+      const job = jobs.find((j) => j.id === rec.job_id);
+      if (!job) return null;
+
+      return {
+        ...job,
+        matchScore: rec.score,
+      };
+    }).filter(Boolean);
+
+    // Sort highest score first
+    recommended.sort((a, b) => b.matchScore - a.matchScore);
+
+    res.json({
+      success: true,
+      count: recommended.length,
+      data: recommended,
+    });
+
   } catch (err) {
     next(err);
   }

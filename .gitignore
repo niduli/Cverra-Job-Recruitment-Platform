@@ -143,3 +143,9 @@ firebase/serviceAccountKey.json
 
 # Backend environment file
 backend/.env
+
+# ML / Python
+ml-services/**/*.pkl
+ml-services/**/*.csv
+ml-services/**/__pycache__/
+*.pyc

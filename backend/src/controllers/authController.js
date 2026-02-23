@@ -89,6 +89,54 @@ import {
   createUserModel,
 } from "../models/userModel.js";
 
+// // POST /api/auth/register
+// export const register = async (req, res, next) => {
+//   try {
+//     const { name, email, password, role } = req.body;
+
+//     if (!name || !email || !password) {
+//       return res.status(400).json({
+//         error: "Name, email and password are required.",
+//       });
+//     }
+
+//     // Check if email already exists
+//     const users = await firestoreService.getAllDocuments(userCollection);
+//     const existing = users.find((u) => u.email === email);
+
+//     if (existing) {
+//       return res.status(400).json({
+//         error: "Email already registered.",
+//       });
+//     }
+
+//     // Hash password
+//     const passwordHash = await bcrypt.hash(password, 10);
+
+//     // Create user using model helper
+//     const user = createUserModel({
+//       name,
+//       email,
+//       passwordHash,
+//       role,
+//     });
+
+//     // Save to Firestore
+//     await firestoreService.createDocument(
+//       userCollection,
+//       user.id,
+//       user
+//     );
+
+//     res.status(201).json({
+//       message: "User registered successfully.",
+//       userId: user.id,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 // POST /api/auth/register
 export const register = async (req, res, next) => {
   try {
@@ -100,9 +148,27 @@ export const register = async (req, res, next) => {
       });
     }
 
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Allowed roles
+    const allowedRoles = ["admin", "employer", "jobseeker"];
+
+    // Default role if not provided
+    const userRole = role ? role.toLowerCase().trim() : "jobseeker";
+
+    // Validate role
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(400).json({
+        error: "Invalid role type. Allowed roles: admin, employer, jobseeker.",
+      });
+    }
+
     // Check if email already exists
     const users = await firestoreService.getAllDocuments(userCollection);
-    const existing = users.find((u) => u.email === email);
+    const existing = users.find(
+      (u) => u.email.toLowerCase() === normalizedEmail
+    );
 
     if (existing) {
       return res.status(400).json({
@@ -115,10 +181,10 @@ export const register = async (req, res, next) => {
 
     // Create user using model helper
     const user = createUserModel({
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       passwordHash,
-      role,
+      role: userRole,
     });
 
     // Save to Firestore
