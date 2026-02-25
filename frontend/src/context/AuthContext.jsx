@@ -1,77 +1,100 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import api from "../services/api";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [registeredUsers, setRegisteredUsers] = useState(() => {
-    // Load registered users from localStorage
-    const saved = localStorage.getItem("registeredUsers");
-    return saved ? JSON.parse(saved) : {};
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("authUser");
+    return saved ? JSON.parse(saved) : null;
   });
 
-  // Save registered users to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
-  }, [registeredUsers]);
-
-  // REGISTER USER
-  const register = (email, fullName, password, role) => {
-    const normalizedEmail = email.toLowerCase().trim();
-    
-    // Check if user already exists
-    if (registeredUsers[normalizedEmail]) {
-      return { success: false, error: "Email already registered" };
+    if (user) {
+      localStorage.setItem("authUser", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("authUser");
     }
+  }, [user]);
 
-    // Store user with their role
-    const newUser = {
-      email: normalizedEmail,
-      fullName,
-      password, // NOTE: In production, this should be hashed!
-      role: role.toLowerCase().trim(),
-    };
-
-    setRegisteredUsers((prev) => ({
-      ...prev,
-      [normalizedEmail]: newUser,
-    }));
-
-    return { success: true };
+  const getErrorMessage = (error, fallback) => {
+    return (
+      error?.response?.data?.error ||
+      error?.response?.data?.message ||
+      fallback
+    );
   };
 
-  // LOGIN USER
-  const login = (email, role) => {
-    const normalizedEmail = email.toLowerCase().trim();
-    const normalizedRole = role.toLowerCase().trim();
+  const register = async (email, fullName, password, role) => {
+    try {
+      await api.post("/auth/register", {
+        name: fullName,
+        email,
+        password,
+        role,
+      });
 
-    // Check if user exists
-    const registeredUser = registeredUsers[normalizedEmail];
-    if (!registeredUser) {
-      return { success: false, error: "User not found. Please register first." };
-    }
-
-    // Check if role matches
-    if (registeredUser.role !== normalizedRole) {
+      return { success: true };
+    } catch (error) {
       return {
         success: false,
-        error: `This email is registered as ${registeredUser.role}. Please select the correct role.`,
-        correctRole: registeredUser.role,
+        error: getErrorMessage(error, "Registration failed."),
       };
     }
+  };
 
-    // Login successful
-    const fakeUser = {
-      email: normalizedEmail,
-      fullName: registeredUser.fullName,
-      role: normalizedRole,
-    };
+  const login = async (email, password, role) => {
+    try {
+      const response = await api.post("/auth/login", {
+        email,
+        password,
+      });
 
-    setUser(fakeUser);
-    return { success: true };
+      const responseUser = response.data?.user;
+      const token = response.data?.token;
+
+      if (!responseUser || !token) {
+        return {
+          success: false,
+          error: "Invalid login response from server.",
+        };
+      }
+
+      const backendRole = responseUser.role?.toLowerCase();
+      const selectedRole = role?.toLowerCase();
+
+      if (selectedRole && backendRole !== selectedRole) {
+        return {
+          success: false,
+          error: `This account is registered as ${backendRole}. Please select the correct role.`,
+          correctRole: backendRole,
+        };
+      }
+
+      const normalizedUser = {
+        id: responseUser.id,
+        name: responseUser.name,
+        email: email.toLowerCase().trim(),
+        role: backendRole,
+      };
+
+      localStorage.setItem("authToken", token);
+      setUser(normalizedUser);
+
+      return {
+        success: true,
+        user: normalizedUser,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: getErrorMessage(error, "Login failed."),
+      };
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem("authToken");
     setUser(null);
   };
 

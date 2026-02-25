@@ -1,66 +1,103 @@
-import { useAuth } from "../../context/AuthContext";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/Navbar";
+import api from "../../services/api";
 import "../Dashboard.css";
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const [analytics, setAnalytics] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [approvingUserId, setApprovingUserId] = useState("");
+
+  const fetchAdminData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [analyticsResponse, usersResponse, jobsResponse] = await Promise.all([
+        api.get("/admin/analytics"),
+        api.get("/admin/users"),
+        api.get("/admin/jobs"),
+      ]);
+
+      setAnalytics(analyticsResponse.data?.analytics || null);
+      setUsers(usersResponse.data?.data || []);
+      setJobs(jobsResponse.data?.data || []);
+    } catch (err) {
+      setError(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "Failed to load admin data."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminData();
+  }, []);
+
+  const formatCreatedDate = (createdAt) => {
+    if (!createdAt) return "-";
+    if (createdAt?.seconds) {
+      return new Date(createdAt.seconds * 1000).toLocaleDateString();
+    }
+    const date = new Date(createdAt);
+    return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+  };
+
+  const recentUsers = useMemo(() => {
+    return [...users]
+      .sort((a, b) => {
+        const aTime = a?.createdAt?.seconds
+          ? a.createdAt.seconds
+          : new Date(a.createdAt || 0).getTime() / 1000;
+        const bTime = b?.createdAt?.seconds
+          ? b.createdAt.seconds
+          : new Date(b.createdAt || 0).getTime() / 1000;
+        return bTime - aTime;
+      })
+      .slice(0, 10);
+  }, [users]);
+
+  const recentJobs = useMemo(() => {
+    return [...jobs]
+      .sort((a, b) => {
+        const aTime = a?.createdAt?.seconds
+          ? a.createdAt.seconds
+          : new Date(a.createdAt || 0).getTime() / 1000;
+        const bTime = b?.createdAt?.seconds
+          ? b.createdAt.seconds
+          : new Date(b.createdAt || 0).getTime() / 1000;
+        return bTime - aTime;
+      })
+      .slice(0, 10);
+  }, [jobs]);
+
+  const handleApproveEmployer = async (userId) => {
+    try {
+      setApprovingUserId(userId);
+      await api.patch(`/admin/approve/${userId}`);
+      await fetchAdminData();
+    } catch (err) {
+      setError(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "Failed to approve employer."
+      );
+    } finally {
+      setApprovingUserId("");
+    }
+  };
 
   const systemStats = [
-    { icon: "👥", label: "Total Users", value: "1,245", change: "+12%" },
-    { icon: "🏢", label: "Employers", value: "324", change: "+5%" },
-    { icon: "💼", label: "Job Postings", value: "856", change: "+23%" },
-    { icon: "📊", label: "Applications", value: "5,234", change: "+18%" },
-  ];
-
-  const recentUsers = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      role: "Job Seeker",
-      joined: "2 hours ago",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane@example.com",
-      role: "Employer",
-      joined: "5 hours ago",
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike@example.com",
-      role: "Job Seeker",
-      joined: "1 day ago",
-      status: "Pending",
-    },
-  ];
-
-  const reports = [
-    {
-      id: 1,
-      title: "Suspicious Activity Reported",
-      description: "User account with multiple flagged applications",
-      priority: "High",
-      reported: "Today",
-    },
-    {
-      id: 2,
-      title: "Job Posting Violation",
-      description: "Inappropriate content in job description",
-      priority: "Medium",
-      reported: "Yesterday",
-    },
-    {
-      id: 3,
-      title: "User Complaint",
-      description: "Harassment report from a job seeker",
-      priority: "High",
-      reported: "2 days ago",
-    },
+    { icon: "👥", label: "Total Users", value: analytics?.totalUsers ?? 0 },
+    { icon: "🏢", label: "Employers", value: analytics?.totalEmployers ?? 0 },
+    { icon: "💼", label: "Job Postings", value: analytics?.totalJobs ?? 0 },
+    { icon: "📊", label: "Applications", value: analytics?.totalApplications ?? 0 },
   ];
 
   return (
@@ -76,6 +113,9 @@ const AdminDashboard = () => {
         </div>
 
         <div className="dashboard-grid">
+          {loading && <p>Loading admin data...</p>}
+          {error && !loading && <p>{error}</p>}
+
           {/* System Stats */}
           <div className="stats-grid">
             {systemStats.map((stat, index) => (
@@ -84,7 +124,6 @@ const AdminDashboard = () => {
                 <div className="stat-content">
                   <h3>{stat.label}</h3>
                   <p className="stat-value">{stat.value}</p>
-                  <span className="stat-change">{stat.change}</span>
                 </div>
               </div>
             ))}
@@ -95,9 +134,7 @@ const AdminDashboard = () => {
             <section className="section">
               <div className="section-header">
                 <h2>Recent Users</h2>
-                <a href="#" className="view-all">
-                  View All →
-                </a>
+                <span className="view-all">Total: {users.length}</span>
               </div>
               <div className="table-responsive">
                 <table className="data-table">
@@ -119,16 +156,32 @@ const AdminDashboard = () => {
                         <td>
                           <span className="role-badge">{user.role}</span>
                         </td>
-                        <td>{user.joined}</td>
+                        <td>{formatCreatedDate(user.createdAt)}</td>
                         <td>
                           <span
-                            className={`status-badge status-${user.status.toLowerCase()}`}
+                            className={`status-badge status-${
+                              user.role === "employer" && !user.approved
+                                ? "pending"
+                                : "active"
+                            }`}
                           >
-                            {user.status}
+                            {user.role === "employer" && !user.approved
+                              ? "Pending"
+                              : "Active"}
                           </span>
                         </td>
                         <td>
-                          <button className="action-btn">View</button>
+                          {user.role === "employer" && !user.approved ? (
+                            <button
+                              className="action-btn"
+                              onClick={() => handleApproveEmployer(user.id)}
+                              disabled={approvingUserId === user.id}
+                            >
+                              {approvingUserId === user.id ? "Approving..." : "Approve"}
+                            </button>
+                          ) : (
+                            <span>-</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -137,34 +190,39 @@ const AdminDashboard = () => {
               </div>
             </section>
 
-            {/* Reports */}
+            {/* Recent Jobs */}
             <section className="section">
               <div className="section-header">
-                <h2>Flagged Reports</h2>
-                <a href="#" className="view-all">
-                  View All →
-                </a>
+                <h2>Recent Jobs</h2>
+                <span className="view-all">Total: {jobs.length}</span>
               </div>
-              <div className="reports-list">
-                {reports.map((report) => (
-                  <div key={report.id} className="report-card">
-                    <div className="report-header">
-                      <div>
-                        <h3>{report.title}</h3>
-                        <p>{report.description}</p>
-                      </div>
-                      <span
-                        className={`priority-badge priority-${report.priority.toLowerCase()}`}
-                      >
-                        {report.priority}
-                      </span>
-                    </div>
-                    <div className="report-footer">
-                      <p className="report-date">{report.reported}</p>
-                      <button className="secondary-btn">Investigate</button>
-                    </div>
-                  </div>
-                ))}
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Location</th>
+                      <th>Job Type</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentJobs.map((job) => (
+                      <tr key={job.id}>
+                        <td className="user-name">{job.title}</td>
+                        <td>{job.location || "-"}</td>
+                        <td>{job.jobType || "-"}</td>
+                        <td>
+                          <span className={`status-badge status-${job.status || "active"}`}>
+                            {job.status || "active"}
+                          </span>
+                        </td>
+                        <td>{formatCreatedDate(job.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>

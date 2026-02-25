@@ -8,39 +8,51 @@ const Login = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState("jobseeker");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // ================= LOGIN FUNCTION =================
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // validation
     if (!email.trim()) {
       setError("Please enter your email");
       return;
     }
 
-    // login (context) - now returns result object
-    const result = login(email, role);
-
-    if (!result.success) {
-      // Show error message
-      setError(result.error);
-      
-      // If there's a correct role, auto-select it
-      if (result.correctRole) {
-        setRole(result.correctRole);
-      }
+    if (!password.trim()) {
+      setError("Please enter your password");
       return;
     }
 
-    // Login successful - role based redirect
-    const dashboardRoutes = {
-      jobseeker: "/jobseeker/dashboard",
-      employer: "/employer/dashboard",
-      admin: "/admin/dashboard",
-    };
+    setLoading(true);
+    try {
+      // login (context) - now returns result object
+      const result = await login(email, password, role);
 
-    navigate(dashboardRoutes[role]);
+      if (!result.success) {
+        // Show error message
+        setError(result.error);
+
+        // If there's a correct role, auto-select it
+        if (result.correctRole) {
+          setRole(result.correctRole);
+        }
+        return;
+      }
+
+      // Login successful - role based redirect
+      const dashboardRoutes = {
+        jobseeker: "/jobseeker/dashboard",
+        employer: "/employer/dashboard",
+        admin: "/admin/dashboard",
+      };
+
+      navigate(dashboardRoutes[result.user.role]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ENTER KEY LOGIN
@@ -83,6 +95,22 @@ const Login = () => {
             />
           </div>
 
+          {/* PASSWORD */}
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              className="form-input"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
+              onKeyDown={handleKeyPress}
+            />
+          </div>
+
           {/* ROLE */}
           <div className="form-group">
             <label>I am a</label>
@@ -101,8 +129,8 @@ const Login = () => {
           </div>
 
           {/* BUTTON */}
-          <button onClick={handleLogin} className="login-button">
-            Sign In
+          <button onClick={handleLogin} className="login-button" disabled={loading}>
+            {loading ? "Signing In..." : "Sign In"}
           </button>
 
           {/* FOOTER */}

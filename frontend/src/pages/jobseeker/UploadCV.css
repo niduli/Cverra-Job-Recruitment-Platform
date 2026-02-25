@@ -1,0 +1,94 @@
+.upload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.upload-back-btn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.upload-section {
+  margin-bottom: 20px;
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upload-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.upload-input {
+  max-width: 420px;
+}
+
+.upload-selected {
+  color: #4b5563;
+}
+
+.upload-success {
+  color: #15803d;
+  margin-top: 10px;
+}
+
+.upload-error {
+  color: #dc2626;
+  margin-top: 10px;
+}
+
+.insights-card {
+  display: grid;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.insights-item h3 {
+  margin-bottom: 6px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.insight-value {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.skill-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.chip.muted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .upload-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

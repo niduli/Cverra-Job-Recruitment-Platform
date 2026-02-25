@@ -2,76 +2,109 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
+import api from "../../services/api";
 import "../Dashboard.css";
 
 const EmployerDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [jobPostings, setJobPostings] = useState([]);
+  const [jobsError, setJobsError] = useState("");
+  const [recentApplications, setRecentApplications] = useState([]);
+  const [applicationsError, setApplicationsError] = useState("");
+  const [stats, setStats] = useState({
+    activePostings: 0,
+    totalApplications: 0,
+    totalViews: 0,
+    employerRating: 0,
+    trends: {
+      jobsCreatedToday: 0,
+      newApplicationsToday: 0,
+    },
+    jobStats: {},
+  });
 
-  // Load jobs from localStorage on component mount
+  const formatCreatedDate = (createdAt) => {
+    if (!createdAt) return "-";
+    if (createdAt?.seconds) {
+      return new Date(createdAt.seconds * 1000).toLocaleDateString();
+    }
+    if (createdAt?._seconds) {
+      return new Date(createdAt._seconds * 1000).toLocaleDateString();
+    }
+    return new Date(createdAt).toLocaleDateString();
+  };
+
   useEffect(() => {
-    const savedJobs = JSON.parse(localStorage.getItem("jobPostings")) || [];
-    
-    const defaultJobs = [
-      {
-        id: 1,
-        title: "Senior React Developer",
-        views: 245,
-        applications: 18,
-        posted: "2 weeks ago",
-        status: "Active",
-      },
-      {
-        id: 2,
-        title: "Full Stack Developer",
-        views: 156,
-        applications: 12,
-        posted: "3 weeks ago",
-        status: "Active",
-      },
-      {
-        id: 3,
-        title: "UI/UX Designer",
-        views: 89,
-        applications: 5,
-        posted: "1 month ago",
-        status: "Closed",
-      },
-    ];
+    const fetchEmployerData = async () => {
+      try {
+        setJobsError("");
+        setApplicationsError("");
 
-    // Combine saved and default jobs
-    setJobPostings([...savedJobs, ...defaultJobs]);
-  }, []);
+        // ✅ Use /jobs/my to get only employer's own jobs
+        const [jobsResponse, dashboardResponse] = await Promise.all([
+          api.get("/jobs/my"),
+          api.get("/employer/dashboard"),
+        ]);
 
-  const recentApplications = [
-    {
-      id: 1,
-      candidate: "John Doe",
-      position: "Senior React Developer",
-      applied: "Today",
-      status: "New",
-    },
-    {
-      id: 2,
-      candidate: "Jane Smith",
-      position: "Full Stack Developer",
-      applied: "Yesterday",
-      status: "Reviewed",
-    },
-    {
-      id: 3,
-      candidate: "Mike Johnson",
-      position: "Senior React Developer",
-      applied: "2 days ago",
-      status: "Shortlisted",
-    },
-  ];
+        const employerJobs = jobsResponse.data?.data || [];
+        setJobPostings(employerJobs);
 
-  // Calculate stats from jobPostings
-  const activePostings = jobPostings.filter(job => job.status === "Active").length || 8;
-  const totalApplications = jobPostings.reduce((sum, job) => sum + job.applications, 0) || 47;
-  const totalViews = jobPostings.reduce((sum, job) => sum + job.views, 0) || 1200;
+        const dashboardData = dashboardResponse.data?.data || {};
+        
+        // Extract stats from dashboard response
+        setStats({
+          activePostings: dashboardData.activePostings || 0,
+          totalApplications: dashboardData.totalApplications || 0,
+          totalViews: dashboardData.totalViews || 0,
+          employerRating: dashboardData.employerRating || 0,
+          trends: dashboardData.trends || { jobsCreatedToday: 0, newApplicationsToday: 0 },
+          jobStats: dashboardData.jobStats || {},
+        });
+
+        const recent = dashboardData.recentApplications || [];
+
+        const jobTitleById = employerJobs.reduce((acc, job) => {
+          acc[job.id] = job.title;
+          return acc;
+        }, {});
+
+        const mappedRecentApplications = recent.map((app) => {
+          const createdAt = app?.createdAt?.seconds
+            ? new Date(app.createdAt.seconds * 1000)
+            : app?.createdAt?._seconds
+              ? new Date(app.createdAt._seconds * 1000)
+              : app?.createdAt
+                ? new Date(app.createdAt)
+                : null;
+
+          return {
+            id: app.id,
+            applicantId: app.applicantId,
+            candidate: app.applicantName || "Candidate",
+            position: jobTitleById[app.jobId] || "Job Position",
+            applied: createdAt && !Number.isNaN(createdAt.getTime())
+              ? createdAt.toLocaleDateString()
+              : "Recently",
+            status: app.status || "applied",
+          };
+        });
+
+        setRecentApplications(mappedRecentApplications);
+      } catch (error) {
+        setJobsError(
+          error?.response?.data?.error ||
+            error?.response?.data?.message ||
+            "Failed to load your job postings."
+        );
+        setApplicationsError("Failed to load recent applications.");
+      }
+    };
+
+    if (user?.id) {
+      fetchEmployerData();
+    }
+  }, [user?.id]);
 
   return (
     <div className="dashboard-layout">
@@ -98,11 +131,13 @@ const EmployerDashboard = () => {
           <div className="stat-card-modern">
             <div className="stat-card-header">
               <div className="stat-icon-modern">📋</div>
-              <div className="stat-badge active">+2 today</div>
+              {stats.trends.jobsCreatedToday > 0 && (
+                <div className="stat-badge active">+{stats.trends.jobsCreatedToday} today</div>
+              )}
             </div>
             <div className="stat-card-body">
               <p className="stat-label">Active Postings</p>
-              <h3 className="stat-number">{activePostings}</h3>
+              <h3 className="stat-number">{stats.activePostings}</h3>
               <div className="stat-chart"></div>
             </div>
           </div>
@@ -110,11 +145,13 @@ const EmployerDashboard = () => {
           <div className="stat-card-modern">
             <div className="stat-card-header">
               <div className="stat-icon-modern">📨</div>
-              <div className="stat-badge">+5 new</div>
+              {stats.trends.newApplicationsToday > 0 && (
+                <div className="stat-badge">+{stats.trends.newApplicationsToday} new</div>
+              )}
             </div>
             <div className="stat-card-body">
               <p className="stat-label">Applications</p>
-              <h3 className="stat-number">{totalApplications}</h3>
+              <h3 className="stat-number">{stats.totalApplications}</h3>
               <div className="stat-chart"></div>
             </div>
           </div>
@@ -122,11 +159,10 @@ const EmployerDashboard = () => {
           <div className="stat-card-modern">
             <div className="stat-card-header">
               <div className="stat-icon-modern">👁️</div>
-              <div className="stat-badge">+12%</div>
             </div>
             <div className="stat-card-body">
               <p className="stat-label">Profile Views</p>
-              <h3 className="stat-number">{Math.round(totalViews / 100) * 100}</h3>
+              <h3 className="stat-number">{stats.totalViews}</h3>
               <div className="stat-chart"></div>
             </div>
           </div>
@@ -134,11 +170,16 @@ const EmployerDashboard = () => {
           <div className="stat-card-modern">
             <div className="stat-card-header">
               <div className="stat-icon-modern">⭐</div>
-              <div className="stat-badge excellent">Excellent</div>
+              {stats.employerRating >= 4.5 && (
+                <div className="stat-badge excellent">Excellent</div>
+              )}
+              {stats.employerRating >= 3.5 && stats.employerRating < 4.5 && (
+                <div className="stat-badge">Good</div>
+              )}
             </div>
             <div className="stat-card-body">
               <p className="stat-label">Employer Rating</p>
-              <h3 className="stat-number">4.8/5</h3>
+              <h3 className="stat-number">{stats.employerRating > 0 ? `${stats.employerRating.toFixed(1)}/5` : 'N/A'}</h3>
               <div className="stat-chart"></div>
             </div>
           </div>
@@ -157,6 +198,7 @@ const EmployerDashboard = () => {
             </div>
 
             <div className="job-postings-container">
+              {jobsError && <p>{jobsError}</p>}
               {jobPostings.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">📋</div>
@@ -174,7 +216,7 @@ const EmployerDashboard = () => {
                           {job.status}
                         </span>
                       </div>
-                      <span className="job-date-posted">{job.posted}</span>
+                      <span className="job-date-posted">{formatCreatedDate(job.createdAt)}</span>
                     </div>
 
                     <div className="job-metrics">
@@ -182,21 +224,37 @@ const EmployerDashboard = () => {
                         <span className="metric-icon">👁️</span>
                         <div className="metric-info">
                           <p className="metric-label">Views</p>
-                          <p className="metric-value">{job.views}</p>
+                          <p className="metric-value">{stats.jobStats[job.id]?.views || 0}</p>
                         </div>
                       </div>
                       <div className="metric-item">
                         <span className="metric-icon">📨</span>
                         <div className="metric-info">
                           <p className="metric-label">Applications</p>
-                          <p className="metric-value">{job.applications}</p>
+                          <p className="metric-value">{stats.jobStats[job.id]?.applications || 0}</p>
                         </div>
                       </div>
                     </div>
 
                     <div className="job-card-actions">
-                      <button className="btn-secondary">Edit Job</button>
-                      <button className="btn-secondary">View Applications</button>
+                      <button 
+                        className="btn-secondary"
+                        onClick={() => navigate(`/edit-job/${job.id}`)}
+                      >
+                        Edit Job
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => navigate(`/job/${job.id}/analytics`)}
+                      >
+                        📊 Analytics
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => navigate(`/employer/jobs/${job.id}/applications`)}
+                      >
+                        View Applications
+                      </button>
                     </div>
                   </div>
                 ))
@@ -215,15 +273,24 @@ const EmployerDashboard = () => {
             </div>
 
             <div className="applications-container">
+              {applicationsError && <p>{applicationsError}</p>}
+              {!applicationsError && recentApplications.length === 0 && (
+                <p>No recent applications yet.</p>
+              )}
               {recentApplications.map((app) => (
-                <div key={app.id} className="application-card-modern">
+                <div 
+                  key={app.id} 
+                  className="application-card-modern"
+                  onClick={() => app.applicantId && navigate(`/profile/${app.applicantId}`)}
+                  style={{ cursor: app.applicantId ? "pointer" : "default" }}
+                >
                   <div className="app-avatar">👤</div>
                   <div className="app-details">
                     <h4 className="app-name">{app.candidate}</h4>
                     <p className="app-position">{app.position}</p>
                     <p className="app-date">Applied {app.applied}</p>
                   </div>
-                  <div className={`app-status-badge status-${app.status.toLowerCase()}`}>
+                  <div className={`app-status-badge status-${app.status.toLowerCase().replace(" ", "")}`}>
                     {app.status}
                   </div>
                 </div>

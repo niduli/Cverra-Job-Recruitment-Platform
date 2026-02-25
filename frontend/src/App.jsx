@@ -63,10 +63,17 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Register from "./pages/Register";
+import ViewProfile from "./pages/ViewProfile";
+import EditProfile from "./pages/EditProfile";
 
 import JobSeekerDashboard from "./pages/jobseeker/JobSeekerDashboard";
+import JobDetail from "./pages/jobseeker/JobDetail";
+import UploadCV from "./pages/jobseeker/UploadCV";
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
+import JobApplications from "./pages/employer/JobApplications";
+import JobAnalytics from "./pages/employer/JobAnalytics";
 import PostJob from "./pages/employer/PostJob";
+import EditJob from "./pages/employer/EditJob";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
 import RoleProtectedRoute from "./routes/RoleProtectedRoute";
@@ -85,12 +92,58 @@ function App() {
           <Route path="/login" element={<PublicRoute />} />
           <Route path="/register" element={<Register />} />
 
+          {/* Profile Routes */}
+          <Route
+            path="/profile"
+            element={
+              <RoleProtectedRoute allowedRoles={["jobseeker", "employer", "admin"]}>
+                <ViewProfile />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile/:userId"
+            element={
+              <RoleProtectedRoute allowedRoles={["jobseeker", "employer", "admin"]}>
+                <ViewProfile />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile/edit"
+            element={
+              <RoleProtectedRoute allowedRoles={["jobseeker", "employer", "admin"]}>
+                <EditProfile />
+              </RoleProtectedRoute>
+            }
+          />
+
           {/* Job Seeker */}
           <Route
             path="/jobseeker/dashboard"
             element={
               <RoleProtectedRoute allowedRoles={["jobseeker"]}>
                 <JobSeekerDashboard />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/jobseeker/upload-cv"
+            element={
+              <RoleProtectedRoute allowedRoles={["jobseeker"]}>
+                <UploadCV />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/job/:jobId"
+            element={
+              <RoleProtectedRoute allowedRoles={["jobseeker", "employer", "admin"]}>
+                <JobDetail />
               </RoleProtectedRoute>
             }
           />
@@ -110,6 +163,33 @@ function App() {
             element={
               <RoleProtectedRoute allowedRoles={["employer"]}>
                 <PostJob />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/edit-job/:jobId"
+            element={
+              <RoleProtectedRoute allowedRoles={["employer"]}>
+                <EditJob />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/job/:jobId/analytics"
+            element={
+              <RoleProtectedRoute allowedRoles={["employer"]}>
+                <JobAnalytics />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/employer/jobs/:jobId/applications"
+            element={
+              <RoleProtectedRoute allowedRoles={["employer"]}>
+                <JobApplications />
               </RoleProtectedRoute>
             }
           />

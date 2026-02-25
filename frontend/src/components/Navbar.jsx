@@ -25,6 +25,9 @@ const Navbar = () => {
                 {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               </span>
               <span className="user-email">{user.email}</span>
+              <Link to="/profile" className="profile-link">
+                👤 Profile
+              </Link>
               <button onClick={handleLogout} className="logout-btn">
                 Logout
               </button>

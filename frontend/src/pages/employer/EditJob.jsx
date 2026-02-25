@@ -1,17 +1,18 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import api from "../../services/api";
 import "./PostJob.css";
 
-const PostJob = () => {
+const EditJob = () => {
   const navigate = useNavigate();
+  const { jobId } = useParams();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [errors, setErrors] = useState({});
 
   const [formData, setFormData] = useState({
     title: "",
-    company: "",
     description: "",
     location: "",
     salary: "",
@@ -20,15 +21,48 @@ const PostJob = () => {
     skills: "",
   });
 
+  // Load existing job data
+  useEffect(() => {
+    const loadJob = async () => {
+      try {
+        setFetching(true);
+        const response = await api.get(`/jobs/my`);
+        const job = response.data.data.find((j) => j.id === jobId);
+
+        if (!job) {
+          setErrors({ submit: "Job not found" });
+          return;
+        }
+
+        setFormData({
+          title: job.title || "",
+          description: job.description || "",
+          location: job.location || "",
+          salary: job.salaryRange || "",
+          jobType: job.jobType || "Full-time",
+          experience: job.experienceLevel || "0-2 years",
+          skills: Array.isArray(job.skills) ? job.skills.join(", ") : job.skills || "",
+        });
+      } catch (error) {
+        setErrors({
+          submit:
+            error?.response?.data?.error ||
+            error?.response?.data?.message ||
+            "Failed to load job details. Please try again.",
+        });
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    loadJob();
+  }, [jobId]);
+
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.title.trim()) {
       newErrors.title = "Job title is required";
-    }
-
-    if (!formData.company.trim()) {
-      newErrors.company = "Company name is required";
     }
 
     if (!formData.description.trim()) {
@@ -77,9 +111,8 @@ const PostJob = () => {
 
     setLoading(true);
     try {
-      await api.post("/jobs", {
+      await api.put(`/jobs/${jobId}`, {
         title: formData.title,
-        company: formData.company,
         description: formData.description,
         location: formData.location,
         salaryRange: formData.salary,
@@ -98,12 +131,23 @@ const PostJob = () => {
         submit:
           error?.response?.data?.error ||
           error?.response?.data?.message ||
-          "Failed to post job. Please try again.",
+          "Failed to update job. Please try again.",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  if (fetching) {
+    return (
+      <div className="dashboard-layout">
+        <Navbar />
+        <div className="post-job-container">
+          <div className="loading-message">Loading job details...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-layout">
@@ -115,8 +159,8 @@ const PostJob = () => {
             ← Back to Dashboard
           </button>
           <div className="header-content">
-            <h1>Post a New Job</h1>
-            <p>Create an engaging job listing to attract top talent. Fill in all required fields below.</p>
+            <h1>Edit Job</h1>
+            <p>Update the job details below. All fields must be completed.</p>
           </div>
         </div>
 
@@ -153,25 +197,6 @@ const PostJob = () => {
                   </div>
                   {errors.title && <span className="error-text">{errors.title}</span>}
                 </div>
-
-              <div className="form-row">
-                <div className="form-group full">
-                  <label htmlFor="company">Company Name <span className="required">*</span></label>
-                  <div className="form-input-wrapper">
-                    <span className="input-icon">🏢</span>
-                    <input
-                      id="company"
-                      type="text"
-                      name="company"
-                      placeholder="e.g., Google, Microsoft, Cverra Inc."
-                      value={formData.company}
-                      onChange={handleChange}
-                      className={`form-input ${errors.company ? "error" : ""}`}
-                    />
-                  </div>
-                  {errors.company && <span className="error-text">{errors.company}</span>}
-                </div>
-              </div>
               </div>
             </div>
 
@@ -315,7 +340,7 @@ const PostJob = () => {
                 <span>Cancel</span>
               </button>
               <button type="submit" className="submit-btn" disabled={loading}>
-                <span>{loading ? "🔄 Posting..." : "✓ Post Job"}</span>
+                <span>{loading ? "🔄 Updating..." : "✓ Update Job"}</span>
               </button>
             </div>
           </form>
@@ -325,4 +350,4 @@ const PostJob = () => {
   );
 };
 
-export default PostJob;
+export default EditJob;

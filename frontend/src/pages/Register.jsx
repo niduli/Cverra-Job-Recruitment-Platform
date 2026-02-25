@@ -70,11 +70,8 @@ const Register = () => {
 
     setLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
       // Register user
-      const result = registerUser(
+      const result = await registerUser(
         formData.email,
         formData.fullName,
         formData.password,
@@ -189,8 +186,10 @@ const Register = () => {
               >
                 <option value="jobseeker">Job Seeker</option>
                 <option value="employer">Employer</option>
-                <option value="admin">Administrator</option>
               </select>
+              <small style={{ color: "var(--color-text-secondary)", marginTop: "4px", display: "block" }}>
+                Note: Administrator accounts are managed separately
+              </small>
             </div>
 
             <button
