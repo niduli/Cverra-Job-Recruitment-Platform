@@ -4,6 +4,16 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 
+@app.route("/health", methods=["GET"])
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Job Recommendation Service is running",
+        "service": "Job Recommendation",
+        "port": 5002
+    }), 200
+
 @app.route("/recommend", methods=["POST"])
 def recommend_jobs():
     data = request.json

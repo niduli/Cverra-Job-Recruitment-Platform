@@ -8,6 +8,16 @@ class RankRequest(BaseModel):
     job_description: str
     cv_text: str
 
+@app.get("/health")
+def health():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "message": "CV Ranking Service is running",
+        "service": "CV Ranking",
+        "port": 8002
+    }
+
 @app.post("/rank")
 def rank_cv(data: RankRequest):
     # TEMP: simple keyword overlap scoring

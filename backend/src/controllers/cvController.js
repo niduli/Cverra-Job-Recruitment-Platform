@@ -95,6 +95,28 @@ import { collection as userCollection } from "../models/userModel.js";
 
 const CV_COLLECTION = "cvs";
 
+// GET /api/cv/my
+export const getMyCVs = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    const cvs = await firestoreService.queryDocuments(
+      CV_COLLECTION,
+      "userId",
+      "==",
+      userId
+    );
+
+    res.json({
+      success: true,
+      count: cvs.length,
+      data: cvs,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // POST /api/cv/upload
 export const uploadCV = async (req, res, next) => {
   try {

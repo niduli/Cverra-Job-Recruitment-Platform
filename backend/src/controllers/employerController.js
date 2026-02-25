@@ -1,6 +1,7 @@
 import firestoreService from "../services/firestoreService.js";
 import { collection as jobCollection } from "../models/jobModel.js";
 import { collection as applicationCollection } from "../models/applicationModel.js";
+import { collection as userCollection } from "../models/userModel.js";
 
 // =====================================================
 // GET /api/employer/dashboard
@@ -18,31 +19,74 @@ export const getEmployerDashboard = async (req, res, next) => {
     );
 
     const totalJobs = jobs.length;
+    const activePostings = jobs.filter((job) => job.status === "active").length;
 
-    // Get all applications
+    // Calculate total views across all jobs
+    const totalViews = jobs.reduce((sum, job) => sum + (job.views || 0), 0);
+
+    // Get all applications for this employer
     const applications =
       await firestoreService.getAllDocuments(applicationCollection);
 
-    // Filter applications belonging to employer's jobs
     const employerJobIds = jobs.map((job) => job.id);
-
     const employerApplications = applications.filter((app) =>
       employerJobIds.includes(app.jobId)
     );
 
     const totalApplications = employerApplications.length;
 
-    // Recent applications (latest 5)
+    // Calculate applications per job
+    const applicationsPerJob = {};
+    employerApplications.forEach((app) => {
+      applicationsPerJob[app.jobId] = (applicationsPerJob[app.jobId] || 0) + 1;
+    });
+
+    // Calculate trends (today's data)
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStartSeconds = Math.floor(todayStart.getTime() / 1000);
+
+    const jobsCreatedToday = jobs.filter((job) => {
+      const jobSeconds = job.createdAt?._seconds || job.createdAt?.seconds || 0;
+      return jobSeconds >= todayStartSeconds;
+    }).length;
+
+    const newApplicationsToday = employerApplications.filter((app) => {
+      const appSeconds = app.createdAt?._seconds || app.createdAt?.seconds || 0;
+      return appSeconds >= todayStartSeconds;
+    }).length;
+
+    // Calculate employer rating (average from user ratings if exists, otherwise default)
+    // TODO: Implement user rating system in future
+    const employerRating = 4.8; // Placeholder until rating system is implemented
+
+    // Sort recent applications
     const recentApplications = employerApplications
-      .sort(
-        (a, b) =>
-          b.createdAt._seconds - a.createdAt._seconds
-      )
+      .sort((a, b) => {
+        const aSeconds = a.createdAt?._seconds || a.createdAt?.seconds || 0;
+        const bSeconds = b.createdAt?._seconds || b.createdAt?.seconds || 0;
+        return bSeconds - aSeconds;
+      })
       .slice(0, 5);
 
-    // Top candidate per job (based on rankScore if exists)
-    const topCandidates = {};
+    const enrichedRecentApplications = await Promise.all(
+      recentApplications.map(async (app) => {
+        if (!app.applicantId) return app;
 
+        try {
+          const user = await firestoreService.getDocument(userCollection, app.applicantId);
+          return {
+            ...app,
+            applicantName: user?.name || app.applicantName,
+          };
+        } catch {
+          return app;
+        }
+      })
+    );
+
+    // Get top candidates per job
+    const topCandidates = {};
     employerApplications.forEach((app) => {
       if (!topCandidates[app.jobId]) {
         topCandidates[app.jobId] = app;
@@ -53,12 +97,29 @@ export const getEmployerDashboard = async (req, res, next) => {
       }
     });
 
+    // Build job stats map
+    const jobStats = {};
+    jobs.forEach((job) => {
+      jobStats[job.id] = {
+        views: job.views || 0,
+        applications: applicationsPerJob[job.id] || 0,
+      };
+    });
+
     res.json({
       success: true,
       data: {
         totalJobs,
+        activePostings,
         totalApplications,
-        recentApplications,
+        totalViews,
+        employerRating,
+        trends: {
+          jobsCreatedToday,
+          newApplicationsToday,
+        },
+        jobStats,
+        recentApplications: enrichedRecentApplications,
         topCandidates: Object.values(topCandidates),
       },
     });

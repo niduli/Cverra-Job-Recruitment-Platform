@@ -208,24 +208,36 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
+    console.log("🔓 Login attempt for email:", email);
+
     if (!email || !password) {
       return res.status(400).json({
         error: "Email and password are required.",
       });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     const users = await firestoreService.getAllDocuments(userCollection);
 
-    const user = users.find((u) => u.email === email);
+    const user = users.find(
+      (u) => u.email?.toLowerCase().trim() === normalizedEmail
+    );
 
     if (!user) {
+      console.log("❌ User not found for email:", normalizedEmail);
       return res.status(404).json({ error: "User not found." });
     }
+
+    console.log("✅ User found:", user.email);
 
     // Compare password with stored hash
     const isMatch = await bcrypt.compare(password, user.passwordHash);
 
+    console.log("🔑 Password match result:", isMatch);
+
     if (!isMatch) {
+      console.log("❌ Password mismatch for user:", normalizedEmail);
       return res.status(401).json({
         error: "Invalid credentials.",
       });
@@ -243,6 +255,8 @@ export const login = async (req, res, next) => {
       }
     );
 
+    console.log("✅ Login successful for user:", user.email);
+
     res.json({
       message: "Login successful",
       token,
@@ -253,6 +267,7 @@ export const login = async (req, res, next) => {
       },
     });
   } catch (err) {
+    console.error("❌ Login Error:", err);
     next(err);
   }
 };

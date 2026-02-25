@@ -80,6 +80,7 @@
 import firestoreService from "../services/firestoreService.js";
 import { collection as userCollection } from "../models/userModel.js";
 import { collection as jobCollection } from "../models/jobModel.js";
+import { collection as applicationCollection } from "../models/applicationModel.js";
 
 
 // GET /api/admin/users
@@ -160,9 +161,11 @@ export const getSystemAnalytics = async (req, res, next) => {
   try {
     const users = await firestoreService.getAllDocuments(userCollection);
     const jobs = await firestoreService.getAllDocuments(jobCollection);
+    const applications = await firestoreService.getAllDocuments(applicationCollection);
 
     const employers = users.filter((u) => u.role === "employer");
     const approvedEmployers = employers.filter((u) => u.approved === true);
+    const pendingEmployers = employers.filter((u) => u.approved !== true);
     const jobseekers = users.filter((u) => u.role === "jobseeker");
     const admins = users.filter((u) => u.role === "admin");
 
@@ -173,8 +176,10 @@ export const getSystemAnalytics = async (req, res, next) => {
         totalAdmins: admins.length,
         totalEmployers: employers.length,
         approvedEmployers: approvedEmployers.length,
+        pendingEmployers: pendingEmployers.length,
         totalJobSeekers: jobseekers.length,
         totalJobs: jobs.length,
+        totalApplications: applications.length,
       },
     });
   } catch (err) {

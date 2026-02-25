@@ -17,6 +17,17 @@ def home():
     return jsonify({"message": "Role Prediction ML Service is running"})
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Role Prediction Service is running",
+        "service": "Role Prediction",
+        "port": 6000
+    }), 200
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
 

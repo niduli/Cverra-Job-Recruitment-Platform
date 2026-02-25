@@ -149,3 +149,17 @@ ml-services/**/*.pkl
 ml-services/**/*.csv
 ml-services/**/__pycache__/
 *.pyc
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db

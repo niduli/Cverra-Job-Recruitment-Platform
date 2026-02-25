@@ -3,6 +3,7 @@ import {
   getMyProfile,
   updateMyProfile,
   getPublicProfile,
+  changePassword,
 } from "../controllers/profileController.js";
 
 import authMiddleware from "../middlewares/authMiddleware.js";
@@ -14,6 +15,9 @@ router.get("/me", authMiddleware, getMyProfile);
 
 // PATCH /api/profile/update
 router.patch("/update", authMiddleware, updateMyProfile);
+
+// POST /api/profile/change-password
+router.post("/change-password", authMiddleware, changePassword);
 
 // GET /api/profile/:id
 router.get("/:id", getPublicProfile);

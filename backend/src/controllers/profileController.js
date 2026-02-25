@@ -1,5 +1,6 @@
 import firestoreService from "../services/firestoreService.js";
 import { collection as userCollection } from "../models/userModel.js";
+import bcrypt from "bcryptjs";
 
 // Helper: remove sensitive fields
 const sanitizeUser = (user) => {
@@ -114,6 +115,99 @@ export const getPublicProfile = async (req, res, next) => {
       data: sanitizeUser(user),
     });
   } catch (err) {
+    next(err);
+  }
+};
+
+// =====================================================
+// POST /api/profile/change-password
+// =====================================================
+export const changePassword = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    console.log("🔐 Password Change Request for userId:", userId);
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        error: "Current password and new password are required.",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        error: "New password must be at least 6 characters long.",
+      });
+    }
+
+    // Get user
+    const user = await firestoreService.getDocument(userCollection, userId);
+
+    if (!user) {
+      console.log("❌ User not found:", userId);
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    console.log("✅ User found:", user.email);
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash
+    );
+
+    console.log("🔑 Current password valid:", isPasswordValid);
+
+    if (!isPasswordValid) {
+      console.log("❌ Current password incorrect for user:", userId);
+      return res.status(401).json({
+        error: "Current password is incorrect.",
+      });
+    }
+
+    // Hash new password
+    const newHashedPassword = await bcrypt.hash(newPassword, 10);
+    console.log("🔐 New password hashed successfully");
+
+    // Update password
+    await firestoreService.updateDocument(userCollection, userId, {
+      passwordHash: newHashedPassword,
+      updatedAt: new Date(),
+    });
+
+    console.log("✅ Password updated successfully for user:", userId);
+
+    // Verify the update by fetching the user again
+    const updatedUser = await firestoreService.getDocument(
+      userCollection,
+      userId
+    );
+
+    const verifyNewPassword = await bcrypt.compare(
+      newPassword,
+      updatedUser.passwordHash
+    );
+
+    console.log(
+      "✅ Password verification after update:",
+      verifyNewPassword
+    );
+
+    if (!verifyNewPassword) {
+      console.log("⚠️ WARNING: Password verification failed after update!");
+      return res.status(500).json({
+        error: "Password update verification failed. Please try again.",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Password changed successfully.",
+    });
+  } catch (err) {
+    console.error("❌ Password Change Error:", err);
     next(err);
   }
 };

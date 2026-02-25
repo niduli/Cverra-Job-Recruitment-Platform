@@ -8,6 +8,8 @@ import profileRoutes from "./profileRoutes.js";
 import healthRoutes from "./healthRoutes.js";
 import employerRoutes from "./employerRoutes.js";
 import adminRoutes from "./adminRoutes.js";
+import testRoutes from "./testRoutes.js";
+import jobseekerRoutes from "./jobseekerRoutes.js";
 
 const router = express.Router();
 
@@ -23,5 +25,7 @@ router.use("/profile", profileRoutes);
 router.use("/health", healthRoutes);
 router.use("/employer", employerRoutes);
 router.use("/admin", adminRoutes);
+router.use("/jobseeker", jobseekerRoutes);
+router.use("/test", testRoutes);
 
 export default router;

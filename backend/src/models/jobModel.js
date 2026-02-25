@@ -4,6 +4,7 @@ export const collection = "jobs";
 
 export const createJobModel = ({
   title,
+  company,
   description,
   skills,
   experienceLevel,
@@ -17,6 +18,7 @@ export const createJobModel = ({
   return {
     id: uuidv4(),
     title,
+    company: company || "",
     description,
     skills: skills || [],
     experienceLevel: experienceLevel || "",

@@ -65,7 +65,7 @@ export const createUserModel = ({
 }) => {
   const now = new Date();
 
-  return {
+  const user = {
     id: uuidv4(),
     name,
     email,
@@ -91,4 +91,11 @@ export const createUserModel = ({
     createdAt: now,
     updatedAt: now,
   };
+
+  // ✅ Auto-approve employers on registration for demo/testing
+  if (role === "employer") {
+    user.approved = true;
+  }
+
+  return user;
 };
