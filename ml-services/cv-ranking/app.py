@@ -1,31 +1,32 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-import random
+from flask import Flask, jsonify, request
 
-app = FastAPI()
+app = Flask(__name__)
 
-class RankRequest(BaseModel):
-    job_description: str
-    cv_text: str
 
-@app.get("/health")
+@app.route("/health", methods=["GET"])
 def health():
     """Health check endpoint"""
-    return {
+    return jsonify({
         "status": "healthy",
         "message": "CV Ranking Service is running",
         "service": "CV Ranking",
         "port": 8002
-    }
+    }), 200
 
-@app.post("/rank")
-def rank_cv(data: RankRequest):
-    # TEMP: simple keyword overlap scoring
-    job_words = set(data.job_description.lower().split())
-    cv_words = set(data.cv_text.lower().split())
 
+@app.route("/rank", methods=["POST"])
+def rank_cv():
+    data = request.get_json(silent=True) or {}
+    job_description = (data.get("job_description") or "").lower()
+    cv_text = (data.get("cv_text") or "").lower()
+
+    job_words = set(job_description.split())
+    cv_words = set(cv_text.split())
     overlap = job_words.intersection(cv_words)
 
     score = len(overlap) / (len(job_words) + 1)
+    return jsonify({"score": score}), 200
 
-    return {"score": score}
+
+if __name__ == "__main__":
+    app.run(port=8002, debug=False, use_reloader=False)

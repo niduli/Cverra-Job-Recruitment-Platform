@@ -43,7 +43,7 @@ sleep 1
 
 echo "💼 Starting Job Recommendation Service (Port 5002)..."
 cd job-recommendation
-flask run --port 5002 > ../logs/job-recommendation.log 2>&1 &
+python3 app.py > ../logs/job-recommendation.log 2>&1 &
 JOB_REC_PID=$!
 cd ..
 sleep 1
