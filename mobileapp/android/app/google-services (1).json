@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "666743429550",
+    "firebase_url": "https://cverrajobrecruitmentplat-384d2-default-rtdb.firebaseio.com",
+    "project_id": "cverrajobrecruitmentplat-384d2",
+    "storage_bucket": "cverrajobrecruitmentplat-384d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:666743429550:android:043f2945455350ffd0503f",
+        "android_client_info": {
+          "package_name": "com.cverra.jobrecruitment"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAG73KW-LNY84Kz3Ly-6mP4IAP7H5zicPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
