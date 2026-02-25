@@ -150,6 +150,10 @@ const UploadCV = () => {
         <section className="section upload-section">
           <form onSubmit={handleUpload} className="upload-form">
             <label htmlFor="cv-file" className="upload-label">Select CV (PDF)</label>
+            <label htmlFor="cv-file" className="upload-picker" aria-label="Choose PDF file">
+              <span className="upload-picker-title">Drop your CV here or click to browse</span>
+              <span className="upload-picker-subtitle">PDF only | Max size depends on server settings</span>
+            </label>
             <input
               id="cv-file"
               type="file"
@@ -157,9 +161,14 @@ const UploadCV = () => {
               onChange={handleFileChange}
               className="upload-input"
             />
-            {selectedFile && <p className="upload-selected">Selected: {selectedFile.name}</p>}
+            {selectedFile && (
+              <p className="upload-selected">
+                <span className="upload-selected-label">Selected file</span>
+                <span className="upload-selected-name">{selectedFile.name}</span>
+              </p>
+            )}
 
-            <button type="submit" className="apply-btn" disabled={loading}>
+            <button type="submit" className="upload-submit-btn" disabled={loading}>
               {loading ? "Uploading..." : "Upload CV"}
             </button>
           </form>

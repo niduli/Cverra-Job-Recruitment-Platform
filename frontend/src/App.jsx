@@ -71,6 +71,7 @@ import JobDetail from "./pages/jobseeker/JobDetail";
 import UploadCV from "./pages/jobseeker/UploadCV";
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import JobApplications from "./pages/employer/JobApplications";
+import ApplicationDetails from "./pages/employer/ApplicationDetails";
 import JobAnalytics from "./pages/employer/JobAnalytics";
 import PostJob from "./pages/employer/PostJob";
 import EditJob from "./pages/employer/EditJob";
@@ -190,6 +191,15 @@ function App() {
             element={
               <RoleProtectedRoute allowedRoles={["employer"]}>
                 <JobApplications />
+              </RoleProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/employer/applications/:applicationId"
+            element={
+              <RoleProtectedRoute allowedRoles={["employer"]}>
+                <ApplicationDetails />
               </RoleProtectedRoute>
             }
           />

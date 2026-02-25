@@ -5,8 +5,12 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("authUser");
-    return saved ? JSON.parse(saved) : null;
+    const savedUser = localStorage.getItem("authUser");
+    const token = localStorage.getItem("authToken");
+
+    if (!savedUser || !token) return null;
+
+    return JSON.parse(savedUser);
   });
 
   useEffect(() => {
@@ -18,6 +22,10 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const getErrorMessage = (error, fallback) => {
+    if (error?.code === "ERR_NETWORK") {
+      return "Cannot reach backend API. Make sure backend is running on http://localhost:5000.";
+    }
+
     return (
       error?.response?.data?.error ||
       error?.response?.data?.message ||
@@ -26,12 +34,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, fullName, password, role) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedRole = role?.toLowerCase().trim() || "jobseeker";
+
     try {
       await api.post("/auth/register", {
         name: fullName,
-        email,
+        email: normalizedEmail,
         password,
-        role,
+        role: normalizedRole,
       });
 
       return { success: true };
@@ -44,9 +55,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password, role) => {
+    const normalizedEmail = email.toLowerCase().trim();
+
     try {
       const response = await api.post("/auth/login", {
-        email,
+        email: normalizedEmail,
         password,
       });
 
@@ -74,7 +87,7 @@ export const AuthProvider = ({ children }) => {
       const normalizedUser = {
         id: responseUser.id,
         name: responseUser.name,
-        email: email.toLowerCase().trim(),
+        email: normalizedEmail,
         role: backendRole,
       };
 
