@@ -40,7 +40,7 @@ timeout /t 2 /nobreak >nul
 
 REM Start Job Recommendation Service (Port 5002)
 echo [*] Starting Job Recommendation Service (Port 5002)...
-start "Job Recommendation Service" cmd /k "cd /d job-recommendation ^&^& flask run --port 5002"
+start "Job Recommendation Service" cmd /k "cd /d job-recommendation ^&^& python app.py"
 timeout /t 2 /nobreak >nul
 
 REM Start CV Ranking Service (Port 8002)

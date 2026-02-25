@@ -1,8 +1,22 @@
 import axios from 'axios';
 
-const ML_ROLE_PREDICTION_URL = process.env.ML_ROLE_PREDICTION_URL || 'http://localhost:6000';
-const ML_JOB_RECOMMEND_URL = process.env.ML_JOB_RECOMMEND_URL || 'http://localhost:5002';
-const ML_CV_RANKING_URL = process.env.ML_CV_RANKING_URL || 'http://localhost:8002';
+const getBaseServiceUrl = (url, fallback) => {
+  const resolved = url || fallback;
+  return resolved.replace(/\/(predict|recommend|rank)\/?$/, '');
+};
+
+const ML_ROLE_PREDICTION_URL = getBaseServiceUrl(
+  process.env.ML_ROLE_PREDICTION_URL || process.env.ML_ROLE_PREDICT_URL,
+  'http://127.0.0.1:6000'
+);
+const ML_JOB_RECOMMEND_URL = getBaseServiceUrl(
+  process.env.ML_JOB_RECOMMEND_URL,
+  'http://127.0.0.1:5002'
+);
+const ML_CV_RANKING_URL = getBaseServiceUrl(
+  process.env.ML_CV_RANKING_URL,
+  'http://127.0.0.1:8002'
+);
 
 const TIMEOUT = 5000; // 5 seconds
 
