@@ -52,6 +52,11 @@ export const userFields = {
   experience: "string",
   education: "string",
   linkedin: "string",
+  companyName: "string",
+  companyWebsite: "string",
+  industry: "string",
+  companySize: "string",
+  foundedYear: "string",
   profileVisibility: "string",
   createdAt: "timestamp",
   updatedAt: "timestamp",
@@ -86,6 +91,11 @@ export const createUserModel = ({
     fieldOfStudy: "",
 
     linkedin: "",
+    companyName: "",
+    companyWebsite: "",
+    industry: "",
+    companySize: "",
+    foundedYear: "",
     profileVisibility: "public",
 
     createdAt: now,

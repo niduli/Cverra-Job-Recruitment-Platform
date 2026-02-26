@@ -1,6 +1,7 @@
 import firestoreService from "../services/firestoreService.js";
 import { collection as userCollection } from "../models/userModel.js";
 import bcrypt from "bcryptjs";
+import { uploadFile } from "../services/storageService.js";
 
 // Helper: remove sensitive fields
 const sanitizeUser = (user) => {
@@ -49,7 +50,13 @@ export const updateMyProfile = async (req, res, next) => {
       "experience",
       "education",
       "linkedin",
+      "companyName",
+      "companyWebsite",
+      "industry",
+      "companySize",
+      "foundedYear",
       "profileVisibility",
+      "profileImageUrl",
     ];
 
     const updates = {};
@@ -81,6 +88,40 @@ export const updateMyProfile = async (req, res, next) => {
     res.json({
       success: true,
       message: "Profile updated successfully.",
+      data: sanitizeUser(updatedUser),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// =====================================================
+// POST /api/profile/upload-photo
+// =====================================================
+export const uploadProfilePhoto = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        error: "No image file uploaded.",
+      });
+    }
+
+    const photoUrl = await uploadFile(file, "avatars");
+
+    await firestoreService.updateDocument(userCollection, userId, {
+      profileImageUrl: photoUrl,
+      updatedAt: new Date(),
+    });
+
+    const updatedUser = await firestoreService.getDocument(userCollection, userId);
+
+    res.status(200).json({
+      success: true,
+      message: "Profile photo uploaded successfully.",
+      photoUrl,
       data: sanitizeUser(updatedUser),
     });
   } catch (err) {
