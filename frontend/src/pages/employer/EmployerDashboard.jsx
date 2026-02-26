@@ -15,8 +15,6 @@ const EmployerDashboard = () => {
   const [stats, setStats] = useState({
     activePostings: 0,
     totalApplications: 0,
-    totalViews: 0,
-    employerRating: 0,
     trends: {
       jobsCreatedToday: 0,
       newApplicationsToday: 0,
@@ -26,12 +24,8 @@ const EmployerDashboard = () => {
 
   const formatCreatedDate = (createdAt) => {
     if (!createdAt) return "-";
-    if (createdAt?.seconds) {
-      return new Date(createdAt.seconds * 1000).toLocaleDateString();
-    }
-    if (createdAt?._seconds) {
-      return new Date(createdAt._seconds * 1000).toLocaleDateString();
-    }
+    if (createdAt?.seconds) return new Date(createdAt.seconds * 1000).toLocaleDateString();
+    if (createdAt?._seconds) return new Date(createdAt._seconds * 1000).toLocaleDateString();
     return new Date(createdAt).toLocaleDateString();
   };
 
@@ -41,7 +35,6 @@ const EmployerDashboard = () => {
         setJobsError("");
         setApplicationsError("");
 
-        // ✅ Use /jobs/my to get only employer's own jobs
         const [jobsResponse, dashboardResponse] = await Promise.all([
           api.get("/jobs/my"),
           api.get("/employer/dashboard"),
@@ -51,19 +44,14 @@ const EmployerDashboard = () => {
         setJobPostings(employerJobs);
 
         const dashboardData = dashboardResponse.data?.data || {};
-        
-        // Extract stats from dashboard response
         setStats({
           activePostings: dashboardData.activePostings || 0,
           totalApplications: dashboardData.totalApplications || 0,
-          totalViews: dashboardData.totalViews || 0,
-          employerRating: dashboardData.employerRating || 0,
           trends: dashboardData.trends || { jobsCreatedToday: 0, newApplicationsToday: 0 },
           jobStats: dashboardData.jobStats || {},
         });
 
         const recent = dashboardData.recentApplications || [];
-
         const jobTitleById = employerJobs.reduce((acc, job) => {
           acc[job.id] = job.title;
           return acc;
@@ -83,9 +71,10 @@ const EmployerDashboard = () => {
             applicantId: app.applicantId,
             candidate: app.applicantName || "Candidate",
             position: jobTitleById[app.jobId] || "Job Position",
-            applied: createdAt && !Number.isNaN(createdAt.getTime())
-              ? createdAt.toLocaleDateString()
-              : "Recently",
+            applied:
+              createdAt && !Number.isNaN(createdAt.getTime())
+                ? createdAt.toLocaleDateString()
+                : "Recently",
             status: app.status || "applied",
           };
         });
@@ -101,9 +90,7 @@ const EmployerDashboard = () => {
       }
     };
 
-    if (user?.id) {
-      fetchEmployerData();
-    }
+    if (user?.id) fetchEmployerData();
   }, [user?.id]);
 
   return (
@@ -111,11 +98,10 @@ const EmployerDashboard = () => {
       <Navbar />
 
       <div className="dashboard-container">
-        {/* Hero Section */}
         <div className="dashboard-hero">
           <div className="hero-content">
             <div>
-              <p className="hero-greeting">Welcome back! </p>
+              <p className="hero-greeting">Welcome back!</p>
               <h1>Recruitment Dashboard</h1>
               <p className="hero-subtitle">Manage job postings, track applications, and grow your team</p>
             </div>
@@ -126,11 +112,9 @@ const EmployerDashboard = () => {
           <div className="hero-decoration"></div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="stats-grid-modern">
-          <div className="stat-card-modern">
+        <div className="stats-grid-modern stats-grid-employer">
+          <div className="stat-card-modern stat-card-modern-clean">
             <div className="stat-card-header">
-              <div className="stat-icon-modern">📋</div>
               {stats.trends.jobsCreatedToday > 0 && (
                 <div className="stat-badge active">+{stats.trends.jobsCreatedToday} today</div>
               )}
@@ -142,9 +126,8 @@ const EmployerDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card-modern">
+          <div className="stat-card-modern stat-card-modern-clean">
             <div className="stat-card-header">
-              <div className="stat-icon-modern">📨</div>
               {stats.trends.newApplicationsToday > 0 && (
                 <div className="stat-badge">+{stats.trends.newApplicationsToday} new</div>
               )}
@@ -155,39 +138,9 @@ const EmployerDashboard = () => {
               <div className="stat-chart"></div>
             </div>
           </div>
-
-          <div className="stat-card-modern">
-            <div className="stat-card-header">
-              <div className="stat-icon-modern">👁️</div>
-            </div>
-            <div className="stat-card-body">
-              <p className="stat-label">Profile Views</p>
-              <h3 className="stat-number">{stats.totalViews}</h3>
-              <div className="stat-chart"></div>
-            </div>
-          </div>
-
-          <div className="stat-card-modern">
-            <div className="stat-card-header">
-              <div className="stat-icon-modern">⭐</div>
-              {stats.employerRating >= 4.5 && (
-                <div className="stat-badge excellent">Excellent</div>
-              )}
-              {stats.employerRating >= 3.5 && stats.employerRating < 4.5 && (
-                <div className="stat-badge">Good</div>
-              )}
-            </div>
-            <div className="stat-card-body">
-              <p className="stat-label">Employer Rating</p>
-              <h3 className="stat-number">{stats.employerRating > 0 ? `${stats.employerRating.toFixed(1)}/5` : 'N/A'}</h3>
-              <div className="stat-chart"></div>
-            </div>
-          </div>
         </div>
 
-        {/* Main Content Grid */}
         <div className="dashboard-content-grid">
-          {/* Job Postings Section */}
           <section className="content-section">
             <div className="section-header-modern">
               <div>
@@ -201,10 +154,12 @@ const EmployerDashboard = () => {
               {jobsError && <p>{jobsError}</p>}
               {jobPostings.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon">📋</div>
+                  <div className="empty-icon">No Jobs</div>
                   <h3>No job postings yet</h3>
                   <p>Create your first job posting to start attracting candidates</p>
-                  <button className="btn-create" onClick={() => navigate("/post-job")}>Create First Job</button>
+                  <button className="btn-create" onClick={() => navigate("/post-job")}>
+                    Create First Job
+                  </button>
                 </div>
               ) : (
                 jobPostings.slice(0, 6).map((job) => (
@@ -212,23 +167,19 @@ const EmployerDashboard = () => {
                     <div className="job-card-top">
                       <div className="job-title-info">
                         <h3 className="job-title-modern">{job.title}</h3>
-                        <span className={`job-status status-${job.status.toLowerCase()}`}>
-                          {job.status}
-                        </span>
+                        <span className={`job-status status-${job.status.toLowerCase()}`}>{job.status}</span>
                       </div>
                       <span className="job-date-posted">{formatCreatedDate(job.createdAt)}</span>
                     </div>
 
                     <div className="job-metrics">
                       <div className="metric-item">
-                        <span className="metric-icon">👁️</span>
                         <div className="metric-info">
                           <p className="metric-label">Views</p>
                           <p className="metric-value">{stats.jobStats[job.id]?.views || 0}</p>
                         </div>
                       </div>
                       <div className="metric-item">
-                        <span className="metric-icon">📨</span>
                         <div className="metric-info">
                           <p className="metric-label">Applications</p>
                           <p className="metric-value">{stats.jobStats[job.id]?.applications || 0}</p>
@@ -237,17 +188,11 @@ const EmployerDashboard = () => {
                     </div>
 
                     <div className="job-card-actions">
-                      <button 
-                        className="btn-secondary"
-                        onClick={() => navigate(`/edit-job/${job.id}`)}
-                      >
+                      <button className="btn-secondary" onClick={() => navigate(`/edit-job/${job.id}`)}>
                         Edit Job
                       </button>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => navigate(`/job/${job.id}/analytics`)}
-                      >
-                        📊 Analytics
+                      <button className="btn-secondary" onClick={() => navigate(`/job/${job.id}/analytics`)}>
+                        Analytics
                       </button>
                       <button
                         className="btn-secondary"
@@ -262,7 +207,6 @@ const EmployerDashboard = () => {
             </div>
           </section>
 
-          {/* Recent Applications Section */}
           <section className="content-section">
             <div className="section-header-modern">
               <div>
@@ -274,17 +218,14 @@ const EmployerDashboard = () => {
 
             <div className="applications-container">
               {applicationsError && <p>{applicationsError}</p>}
-              {!applicationsError && recentApplications.length === 0 && (
-                <p>No recent applications yet.</p>
-              )}
+              {!applicationsError && recentApplications.length === 0 && <p>No recent applications yet.</p>}
               {recentApplications.map((app) => (
-                <div 
-                  key={app.id} 
+                <div
+                  key={app.id}
                   className="application-card-modern"
                   onClick={() => app.applicantId && navigate(`/profile/${app.applicantId}`)}
                   style={{ cursor: app.applicantId ? "pointer" : "default" }}
                 >
-                  <div className="app-avatar">👤</div>
                   <div className="app-details">
                     <h4 className="app-name">{app.candidate}</h4>
                     <p className="app-position">{app.position}</p>

@@ -321,11 +321,25 @@ export const getApplicationsForJob = async (req, res, next) => {
 export const updateApplicationStatus = async (req, res, next) => {
   try {
     const { applicationId } = req.params;
-    const { status } = req.body;
+    const {
+      status,
+      interviewAt,
+      interviewMode,
+      interviewLocation,
+      interviewNotes,
+    } = req.body;
+    const requester = req.user;
 
     if (!status) {
       return res.status(400).json({
         error: "Status is required.",
+      });
+    }
+
+    const allowedStatuses = ["applied", "reviewed", "accepted", "rejected"];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        error: "Invalid status value.",
       });
     }
 
@@ -340,7 +354,40 @@ export const updateApplicationStatus = async (req, res, next) => {
       });
     }
 
+    const job = await firestoreService.getDocument(jobCollection, application.jobId);
+    if (!job) {
+      return res.status(404).json({
+        error: "Job not found for this application.",
+      });
+    }
+
+    const isAdmin = requester.role === "admin";
+    const isOwnerEmployer = job.employerId === requester.userId;
+    if (!isAdmin && !isOwnerEmployer) {
+      return res.status(403).json({
+        error: "Not authorized to update this application.",
+      });
+    }
+
     application.status = status;
+
+    if (status === "accepted") {
+      if (!interviewAt) {
+        return res.status(400).json({
+          error: "Interview date/time is required when accepting an application.",
+        });
+      }
+
+      application.interviewAt = interviewAt;
+      application.interviewMode = interviewMode || "online";
+      application.interviewLocation = interviewLocation || "";
+      application.interviewNotes = interviewNotes || "";
+    }
+
+    if (status === "rejected") {
+      application.rejectedAt = new Date();
+    }
+
     application.updatedAt = new Date();
 
     await firestoreService.updateDocument(
@@ -351,8 +398,91 @@ export const updateApplicationStatus = async (req, res, next) => {
 
     res.json({
       message: "Application status updated",
+      data: {
+        id: applicationId,
+        status,
+        interviewAt: application.interviewAt || null,
+        interviewMode: application.interviewMode || null,
+        interviewLocation: application.interviewLocation || null,
+        interviewNotes: application.interviewNotes || null,
+      },
     });
 
+  } catch (err) {
+    next(err);
+  }
+};
+
+// =======================================================
+// GET /api/applications/:applicationId
+// =======================================================
+export const getApplicationById = async (req, res, next) => {
+  try {
+    const { applicationId } = req.params;
+    const requester = req.user;
+
+    const application = await firestoreService.getDocument(
+      applicationCollection,
+      applicationId
+    );
+
+    if (!application) {
+      return res.status(404).json({
+        error: "Application not found.",
+      });
+    }
+
+    const job = await firestoreService.getDocument(jobCollection, application.jobId);
+    if (!job) {
+      return res.status(404).json({
+        error: "Job not found for this application.",
+      });
+    }
+
+    const isAdmin = requester.role === "admin";
+    const isOwnerEmployer = job.employerId === requester.userId;
+
+    if (!isAdmin && !isOwnerEmployer) {
+      return res.status(403).json({
+        error: "Not authorized to view this application.",
+      });
+    }
+
+    const applicant = await firestoreService.getDocument(
+      userCollection,
+      application.applicantId
+    );
+
+    const cv = application.cvId
+      ? await firestoreService.getDocument("cvs", application.cvId)
+      : null;
+
+    const safeApplicant = applicant
+      ? (() => {
+          const { passwordHash, ...safeUser } = applicant;
+          return safeUser;
+        })()
+      : null;
+
+    res.json({
+      success: true,
+      data: {
+        ...application,
+        job: {
+          id: job.id,
+          title: job.title,
+        },
+        applicant: safeApplicant,
+        cv: cv
+          ? {
+              id: cv.id,
+              fileName: cv.fileName,
+              fileUrl: cv.fileUrl,
+              createdAt: cv.createdAt || null,
+            }
+          : null,
+      },
+    });
   } catch (err) {
     next(err);
   }

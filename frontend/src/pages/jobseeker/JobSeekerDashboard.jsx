@@ -65,6 +65,23 @@ const JobSeekerDashboard = () => {
     return `${diffDays} days ago`;
   };
 
+  const formatInterviewDateTime = (value) => {
+    if (!value) return "To be scheduled";
+
+    let interviewDate = null;
+    if (value?.seconds) {
+      interviewDate = new Date(value.seconds * 1000);
+    } else if (value?._seconds) {
+      interviewDate = new Date(value._seconds * 1000);
+    } else {
+      interviewDate = new Date(value);
+    }
+
+    if (Number.isNaN(interviewDate.getTime())) return "To be scheduled";
+
+    return interviewDate.toLocaleString();
+  };
+
   const fetchDashboardStats = async () => {
     try {
       const response = await api.get("/jobseeker/dashboard");
@@ -102,6 +119,10 @@ const JobSeekerDashboard = () => {
         company: item.job?.company || "Cverra Employer",
         status: normalizeStatus(item.status),
         appliedDate: formatAppliedDate(item.createdAt),
+        interviewAt: item.interviewAt || null,
+        interviewMode: item.interviewMode || "",
+        interviewLocation: item.interviewLocation || "",
+        interviewNotes: item.interviewNotes || "",
       }));
       setApplications(mappedApplications);
     } catch (error) {
@@ -258,20 +279,6 @@ const JobSeekerDashboard = () => {
                 <p className="stat-value">{stats.totalSavedJobs}</p>
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-icon">👁️</div>
-              <div className="stat-content">
-                <h3>Profile Views</h3>
-                <p className="stat-value">{stats.profileViews}</p>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon">💬</div>
-              <div className="stat-content">
-                <h3>Messages</h3>
-                <p className="stat-value">{stats.unreadMessages}</p>
-              </div>
-            </div>
           </div>
 
           <div className="dashboard-content">
@@ -408,6 +415,22 @@ const JobSeekerDashboard = () => {
                         <h3>{app.job}</h3>
                         <p className="company">{app.company}</p>
                         <p className="date">{app.appliedDate}</p>
+                        {app.status === "Accepted" && (
+                          <>
+                            <p className="date">
+                              Interview: {formatInterviewDateTime(app.interviewAt)}
+                            </p>
+                            {app.interviewMode && (
+                              <p className="date">Mode: {app.interviewMode}</p>
+                            )}
+                            {app.interviewLocation && (
+                              <p className="date">Location/Link: {app.interviewLocation}</p>
+                            )}
+                            {app.interviewNotes && (
+                              <p className="date">Notes: {app.interviewNotes}</p>
+                            )}
+                          </>
+                        )}
                       </div>
                       <div className={`app-status status-${app.status.replace(" ", "").toLowerCase()}`}>
                         {app.status}

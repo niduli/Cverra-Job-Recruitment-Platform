@@ -4,8 +4,6 @@ import Navbar from "../../components/Navbar";
 import api from "../../services/api";
 import "../Dashboard.css";
 
-const STATUS_OPTIONS = ["applied", "reviewed", "accepted", "rejected"];
-
 const JobApplications = () => {
   const navigate = useNavigate();
   const { jobId } = useParams();
@@ -13,7 +11,6 @@ const JobApplications = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [statusUpdatingId, setStatusUpdatingId] = useState("");
 
   const pageTitle = useMemo(() => {
     const first = applications[0];
@@ -29,6 +26,8 @@ const JobApplications = () => {
 
       const mapped = data.map((app) => ({
         id: app.id,
+        applicantId: app.applicantId || app.profile?.id || "",
+        cvId: app.cvId || "",
         applicantName: app.profile?.name || app.applicantName || "Candidate",
         applicantEmail: app.profile?.email || "N/A",
         status: app.status || "applied",
@@ -63,27 +62,6 @@ const JobApplications = () => {
     return Number.isNaN(date.getTime()) ? "Recently" : date.toLocaleDateString();
   };
 
-  const handleStatusChange = async (applicationId, status) => {
-    try {
-      setStatusUpdatingId(applicationId);
-      await api.patch(`/applications/${applicationId}/status`, { status });
-
-      setApplications((previous) =>
-        previous.map((item) =>
-          item.id === applicationId ? { ...item, status } : item
-        )
-      );
-    } catch (err) {
-      setError(
-        err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          "Failed to update application status."
-      );
-    } finally {
-      setStatusUpdatingId("");
-    }
-  };
-
   return (
     <div className="dashboard-layout">
       <Navbar />
@@ -112,7 +90,22 @@ const JobApplications = () => {
           {!loading && !error && applications.length > 0 && (
             <div className="applications-list">
               {applications.map((app) => (
-                <div key={app.id} className="application-card">
+                <div
+                  key={app.id}
+                  className="application-card"
+                  onClick={() =>
+                    navigate(`/employer/applications/${app.id}`, {
+                      state: {
+                        application: {
+                          ...app,
+                          jobId,
+                          jobTitle: pageTitle,
+                        },
+                      },
+                    })
+                  }
+                  style={{ cursor: "pointer" }}
+                >
                   <div className="app-info">
                     <h3>{app.applicantName}</h3>
                     <p className="company">{app.applicantEmail}</p>
@@ -122,17 +115,6 @@ const JobApplications = () => {
 
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                     <span className={`app-status status-${app.status}`}>{app.status}</span>
-                    <select
-                      value={app.status}
-                      disabled={statusUpdatingId === app.id}
-                      onChange={(event) => handleStatusChange(app.id, event.target.value)}
-                    >
-                      {STATUS_OPTIONS.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                 </div>
               ))}

@@ -5,6 +5,7 @@ import { authorizeRoles } from "../middlewares/roleMiddleware.js";
 import {
   applyForJob,
   getApplicationsForJob,
+  getApplicationById,
   updateApplicationStatus,
   getMyApplications,
 
@@ -41,6 +42,13 @@ router.get(
   authenticate,
   authorizeRoles("jobseeker"),
   getMyApplications
+);
+
+router.get(
+  "/:applicationId",
+  authenticate,
+  authorizeRoles("employer", "admin"),
+  getApplicationById
 );
 
 export default router;
