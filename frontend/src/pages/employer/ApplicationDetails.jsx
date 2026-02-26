@@ -181,11 +181,21 @@ const ApplicationDetails = () => {
           )}
         </div>
 
-        <div className="profile-container">
-          <div className="profile-card profile-header-card">
-            <div className="profile-avatar-large">AP</div>
-            <div className="profile-header-info">
-              <h1>{applicant.name || application?.applicantName || "Candidate"}</h1>
+          <div className="profile-container">
+            <div className="profile-card profile-header-card">
+              <div className="profile-avatar-large">
+                {applicant?.profileImageUrl ? (
+                  <img
+                    src={applicant.profileImageUrl}
+                    alt={`${applicant.name || "Applicant"} profile`}
+                    className="profile-avatar-image"
+                  />
+                ) : (
+                  (applicant?.name?.charAt(0)?.toUpperCase() || "A")
+                )}
+              </div>
+              <div className="profile-header-info">
+                <h1>{applicant.name || application?.applicantName || "Candidate"}</h1>
               <p className="profile-role">{applicant.role || "jobseeker"}</p>
               <p className="profile-bio">
                 Application for {application?.job?.title || "job"} | Status: {application?.status || "applied"}

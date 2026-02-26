@@ -144,22 +144,10 @@
   padding-top: 6px;
 }
 
-.input-icon {
-  position: absolute;
-  left: 14px;
-  font-size: 16px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.textarea-wrapper .input-icon {
-  top: 14px;
-}
-
 .form-input,
 .form-input.textarea {
   width: 100%;
-  padding: 13px 15px 13px 44px;
+  padding: 13px 15px;
   border: 2px solid #e8e8e8;
   border-radius: 10px;
   font-size: 14px;
@@ -194,7 +182,7 @@
 }
 
 .form-input.textarea {
-  padding: 13px 15px 13px 44px;
+  padding: 13px 15px;
   resize: vertical;
   min-height: 120px;
 }
@@ -429,12 +417,7 @@
   .form-input,
   .form-input.textarea {
     font-size: 16px;
-    padding: 12px 12px 12px 40px;
-  }
-
-  .input-icon {
-    font-size: 14px;
-    left: 12px;
+    padding: 12px;
   }
 
   .form-input.textarea {
