@@ -91,7 +91,6 @@ const PostJob = () => {
           .filter(Boolean),
       });
 
-      // Redirect back to employer dashboard
       navigate("/employer/dashboard");
     } catch (error) {
       setErrors({
@@ -112,7 +111,7 @@ const PostJob = () => {
       <div className="post-job-container">
         <div className="post-job-header">
           <button className="back-btn" onClick={() => navigate("/employer/dashboard")}>
-            ← Back to Dashboard
+            Back to Dashboard
           </button>
           <div className="header-content">
             <h1>Post a New Job</h1>
@@ -123,13 +122,12 @@ const PostJob = () => {
         <div className="post-job-card">
           {errors.submit && (
             <div className="error-message">
-              <span className="error-icon">⚠️</span>
+              <span className="error-icon">!</span>
               {errors.submit}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="job-form">
-            {/* Basic Information Section */}
             <div className="form-section">
               <div className="section-header">
                 <h2>Basic Information</h2>
@@ -138,9 +136,10 @@ const PostJob = () => {
 
               <div className="form-row">
                 <div className="form-group full">
-                  <label htmlFor="title">Job Title <span className="required">*</span></label>
+                  <label htmlFor="title">
+                    Job Title <span className="required">*</span>
+                  </label>
                   <div className="form-input-wrapper">
-                    <span className="input-icon">📌</span>
                     <input
                       id="title"
                       type="text"
@@ -154,16 +153,16 @@ const PostJob = () => {
                   {errors.title && <span className="error-text">{errors.title}</span>}
                 </div>
 
-              <div className="form-row">
                 <div className="form-group full">
-                  <label htmlFor="company">Company Name <span className="required">*</span></label>
+                  <label htmlFor="company">
+                    Company Name <span className="required">*</span>
+                  </label>
                   <div className="form-input-wrapper">
-                    <span className="input-icon">🏢</span>
                     <input
                       id="company"
                       type="text"
                       name="company"
-                      placeholder="e.g., Google, Microsoft, Cverra Inc."
+                      placeholder="e.g., ABC (Pvt) Ltd"
                       value={formData.company}
                       onChange={handleChange}
                       className={`form-input ${errors.company ? "error" : ""}`}
@@ -172,10 +171,8 @@ const PostJob = () => {
                   {errors.company && <span className="error-text">{errors.company}</span>}
                 </div>
               </div>
-              </div>
             </div>
 
-            {/* Details Section */}
             <div className="form-section">
               <div className="section-header">
                 <h2>Job Details</h2>
@@ -184,14 +181,15 @@ const PostJob = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="location">Location <span className="required">*</span></label>
+                  <label htmlFor="location">
+                    Location <span className="required">*</span>
+                  </label>
                   <div className="form-input-wrapper">
-                    <span className="input-icon">📍</span>
                     <input
                       id="location"
-                      type="text"
                       name="location"
-                      placeholder="e.g., San Francisco, CA"
+                      type="text"
+                      placeholder="e.g., Colombo 03, Sri Lanka"
                       value={formData.location}
                       onChange={handleChange}
                       className={`form-input ${errors.location ? "error" : ""}`}
@@ -201,14 +199,15 @@ const PostJob = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="salary">Salary Range <span className="required">*</span></label>
+                  <label htmlFor="salary">
+                    Salary Range <span className="required">*</span>
+                  </label>
                   <div className="form-input-wrapper">
-                    <span className="input-icon">💰</span>
                     <input
                       id="salary"
                       type="text"
                       name="salary"
-                      placeholder="e.g., $100k - $150k"
+                      placeholder="e.g., LKR 120,000 - LKR 180,000 per month"
                       value={formData.salary}
                       onChange={handleChange}
                       className={`form-input ${errors.salary ? "error" : ""}`}
@@ -220,9 +219,10 @@ const PostJob = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="jobType">Job Type <span className="required">*</span></label>
+                  <label htmlFor="jobType">
+                    Job Type <span className="required">*</span>
+                  </label>
                   <div className="form-input-wrapper">
-                    <span className="input-icon">⏰</span>
                     <select
                       id="jobType"
                       name="jobType"
@@ -240,9 +240,10 @@ const PostJob = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="experience">Experience Level <span className="required">*</span></label>
+                  <label htmlFor="experience">
+                    Experience Level <span className="required">*</span>
+                  </label>
                   <div className="form-input-wrapper">
-                    <span className="input-icon">🎯</span>
                     <select
                       id="experience"
                       name="experience"
@@ -259,7 +260,6 @@ const PostJob = () => {
               </div>
             </div>
 
-            {/* Detailed Description Section */}
             <div className="form-section">
               <div className="section-header">
                 <h2>Description & Requirements</h2>
@@ -268,7 +268,9 @@ const PostJob = () => {
 
               <div className="form-row">
                 <div className="form-group full">
-                  <label htmlFor="description">Job Description <span className="required">*</span></label>
+                  <label htmlFor="description">
+                    Job Description <span className="required">*</span>
+                  </label>
                   <div className="form-input-wrapper textarea-wrapper">
                     <textarea
                       id="description"
@@ -281,15 +283,15 @@ const PostJob = () => {
                     />
                   </div>
                   <div className="field-hint">{formData.description.length} characters</div>
-                  {errors.description && (
-                    <span className="error-text">{errors.description}</span>
-                  )}
+                  {errors.description && <span className="error-text">{errors.description}</span>}
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group full">
-                  <label htmlFor="skills">Required Skills <span className="required">*</span></label>
+                  <label htmlFor="skills">
+                    Required Skills <span className="required">*</span>
+                  </label>
                   <div className="form-input-wrapper textarea-wrapper">
                     <textarea
                       id="skills"
@@ -315,7 +317,7 @@ const PostJob = () => {
                 <span>Cancel</span>
               </button>
               <button type="submit" className="submit-btn" disabled={loading}>
-                <span>{loading ? "🔄 Posting..." : "✓ Post Job"}</span>
+                <span>{loading ? "Posting..." : "Post Job"}</span>
               </button>
             </div>
           </form>

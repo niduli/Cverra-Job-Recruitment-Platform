@@ -14,6 +14,27 @@ const ViewProfile = () => {
   const [error, setError] = useState("");
   const isOwnProfile = !userId || userId === currentUser?.id;
 
+  const formatProfileDate = (value) => {
+    if (!value) return "-";
+
+    // Firestore timestamp serialized by SDK/Admin
+    if (typeof value?.seconds === "number") {
+      return new Date(value.seconds * 1000).toLocaleDateString();
+    }
+    if (typeof value?._seconds === "number") {
+      return new Date(value._seconds * 1000).toLocaleDateString();
+    }
+
+    // Firestore Timestamp object
+    if (typeof value?.toDate === "function") {
+      const date = value.toDate();
+      return Number.isNaN(date?.getTime?.()) ? "-" : date.toLocaleDateString();
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleDateString();
+  };
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -93,7 +114,17 @@ const ViewProfile = () => {
           <div className="profile-container">
             {/* Header Section */}
             <div className="profile-card profile-header-card">
-              <div className="profile-avatar-large">👤</div>
+              <div className="profile-avatar-large">
+                {profile.profileImageUrl ? (
+                  <img
+                    src={profile.profileImageUrl}
+                    alt={`${profile.name || "User"} profile`}
+                    className="profile-avatar-image"
+                  />
+                ) : (
+                  (profile.name?.charAt(0)?.toUpperCase() || "U")
+                )}
+              </div>
               <div className="profile-header-info">
                 <h1>{profile.name || "No name"}</h1>
                 <p className="profile-role">
@@ -192,22 +223,14 @@ const ViewProfile = () => {
                     <div className="info-item">
                       <span className="info-label">Member Since</span>
                       <span className="info-value">
-                        {profile.createdAt?.seconds
-                          ? new Date(profile.createdAt.seconds * 1000).toLocaleDateString()
-                          : profile.createdAt
-                          ? new Date(profile.createdAt).toLocaleDateString()
-                          : "-"}
+                        {formatProfileDate(profile.createdAt)}
                       </span>
                     </div>
                     {profile.updatedAt && (
                       <div className="info-item">
                         <span className="info-label">Last Updated</span>
                         <span className="info-value">
-                          {profile.updatedAt?.seconds
-                            ? new Date(profile.updatedAt.seconds * 1000).toLocaleDateString()
-                            : profile.updatedAt
-                            ? new Date(profile.updatedAt).toLocaleDateString()
-                            : "-"}
+                          {formatProfileDate(profile.updatedAt)}
                         </span>
                       </div>
                     )}
@@ -238,3 +261,4 @@ const ViewProfile = () => {
 };
 
 export default ViewProfile;
+

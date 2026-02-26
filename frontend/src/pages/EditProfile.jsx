@@ -20,6 +20,9 @@ const EditProfile = () => {
   const [passwordErrors, setPasswordErrors] = useState({});
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -30,6 +33,11 @@ const EditProfile = () => {
     education: "",
     linkedin: "",
     skills: "",
+    companyName: "",
+    companyWebsite: "",
+    industry: "",
+    companySize: "",
+    foundedYear: "",
     profileVisibility: "public",
   });
 
@@ -51,8 +59,14 @@ const EditProfile = () => {
           skills: Array.isArray(profile.skills)
             ? profile.skills.join(", ")
             : profile.skills || "",
+          companyName: profile.companyName || "",
+          companyWebsite: profile.companyWebsite || "",
+          industry: profile.industry || "",
+          companySize: profile.companySize || "",
+          foundedYear: profile.foundedYear || "",
           profileVisibility: profile.profileVisibility || "public",
         });
+        setPhotoPreview(profile.profileImageUrl || "");
       } catch (error) {
         setErrors({
           submit: error?.response?.data?.error || "Failed to load profile",
@@ -78,6 +92,58 @@ const EditProfile = () => {
         ...prev,
         [name]: "",
       }));
+    }
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setErrors((prev) => ({
+        ...prev,
+        submit: "Please select a valid image file.",
+      }));
+      return;
+    }
+
+    setErrors({});
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handlePhotoUpload = async () => {
+    if (!photoFile) return;
+
+    try {
+      setUploadingPhoto(true);
+      setErrors({});
+      setSuccessMessage("");
+
+      const formData = new FormData();
+      formData.append("photo", photoFile);
+
+      const response = await api.post("/profile/upload-photo", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const uploadedUrl = response.data?.photoUrl || response.data?.data?.profileImageUrl || "";
+      if (uploadedUrl) {
+        setPhotoPreview(uploadedUrl);
+      }
+      setPhotoFile(null);
+      setSuccessMessage("Profile photo updated successfully!");
+    } catch (error) {
+      setErrors({
+        submit:
+          error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          "Failed to upload profile photo.",
+      });
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -181,17 +247,28 @@ const EditProfile = () => {
         .map((skill) => skill.trim())
         .filter(Boolean);
 
-      await api.patch("/profile/update", {
+      const profilePayload = {
         name: formData.name,
         bio: formData.bio,
         phone: formData.phone,
         location: formData.location,
-        experience: formData.experience,
-        education: formData.education,
         linkedin: formData.linkedin,
         skills: skillsArray,
         profileVisibility: formData.profileVisibility,
-      });
+      };
+
+      if (user?.role === "employer") {
+        profilePayload.companyName = formData.companyName;
+        profilePayload.companyWebsite = formData.companyWebsite;
+        profilePayload.industry = formData.industry;
+        profilePayload.companySize = formData.companySize;
+        profilePayload.foundedYear = formData.foundedYear;
+      } else {
+        profilePayload.experience = formData.experience;
+        profilePayload.education = formData.education;
+      }
+
+      await api.patch("/profile/update", profilePayload);
 
       setSuccessMessage("Profile updated successfully!");
       setTimeout(() => {
@@ -245,6 +322,37 @@ const EditProfile = () => {
             )}
 
             <form onSubmit={handleSubmit} className="edit-profile-form">
+              <div className="form-group">
+                <label>Profile Photo</label>
+                <div className="profile-photo-row">
+                  <div className="profile-photo-preview">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Profile preview" />
+                    ) : (
+                      <span>No Photo</span>
+                    )}
+                  </div>
+                  <div className="profile-photo-actions">
+                    <input
+                      id="profile-photo"
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      onChange={handlePhotoChange}
+                      className="form-input"
+                    />
+                    <button
+                      type="button"
+                      className="submit-btn"
+                      onClick={handlePhotoUpload}
+                      disabled={!photoFile || uploadingPhoto}
+                      style={{ maxWidth: "260px" }}
+                    >
+                      <span>{uploadingPhoto ? "Uploading..." : "Upload Photo"}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Name */}
               <div className="form-group">
                 <label htmlFor="name">Full Name <span className="required">*</span></label>
@@ -266,7 +374,11 @@ const EditProfile = () => {
                 <textarea
                   id="bio"
                   name="bio"
-                  placeholder="Tell us about yourself"
+                  placeholder={
+                    user?.role === "employer"
+                      ? "Tell job seekers about your company and culture"
+                      : "Tell us about yourself"
+                  }
                   value={formData.bio}
                   onChange={handleChange}
                   className="form-input textarea"
@@ -303,34 +415,109 @@ const EditProfile = () => {
                 </div>
               </div>
 
-              {/* Education & Experience */}
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="education">Education</label>
-                  <textarea
-                    id="education"
-                    name="education"
-                    placeholder="Your educational background"
-                    value={formData.education}
-                    onChange={handleChange}
-                    className="form-input textarea"
-                    rows="2"
-                  />
-                </div>
+              {/* Employer-specific fields */}
+              {user?.role === "employer" ? (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="companyName">Company Name</label>
+                    <input
+                      id="companyName"
+                      type="text"
+                      name="companyName"
+                      placeholder="Enter your company name"
+                      value={formData.companyName}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="experience">Experience</label>
-                  <textarea
-                    id="experience"
-                    name="experience"
-                    placeholder="Your professional experience"
-                    value={formData.experience}
-                    onChange={handleChange}
-                    className="form-input textarea"
-                    rows="2"
-                  />
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="industry">Industry</label>
+                      <input
+                        id="industry"
+                        type="text"
+                        name="industry"
+                        placeholder="e.g., Information Technology"
+                        value={formData.industry}
+                        onChange={handleChange}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="companySize">Company Size</label>
+                      <input
+                        id="companySize"
+                        type="text"
+                        name="companySize"
+                        placeholder="e.g., 51-200 employees"
+                        value={formData.companySize}
+                        onChange={handleChange}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="companyWebsite">Company Website</label>
+                      <input
+                        id="companyWebsite"
+                        type="url"
+                        name="companyWebsite"
+                        placeholder="https://yourcompany.com"
+                        value={formData.companyWebsite}
+                        onChange={handleChange}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="foundedYear">Founded Year</label>
+                      <input
+                        id="foundedYear"
+                        type="number"
+                        name="foundedYear"
+                        placeholder="e.g., 2015"
+                        value={formData.foundedYear}
+                        onChange={handleChange}
+                        className="form-input"
+                        min="1800"
+                        max={new Date().getFullYear()}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="education">Education</label>
+                    <textarea
+                      id="education"
+                      name="education"
+                      placeholder="Your educational background"
+                      value={formData.education}
+                      onChange={handleChange}
+                      className="form-input textarea"
+                      rows="2"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="experience">Experience</label>
+                    <textarea
+                      id="experience"
+                      name="experience"
+                      placeholder="Your professional experience"
+                      value={formData.experience}
+                      onChange={handleChange}
+                      className="form-input textarea"
+                      rows="2"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Skills */}
               <div className="form-group">
@@ -338,7 +525,11 @@ const EditProfile = () => {
                 <textarea
                   id="skills"
                   name="skills"
-                  placeholder="List your skills separated by commas (e.g., React, Node.js, MongoDB)"
+                  placeholder={
+                    user?.role === "employer"
+                      ? "List hiring focus skills separated by commas (e.g., React, Node.js, Data Engineering)"
+                      : "List your skills separated by commas (e.g., React, Node.js, MongoDB)"
+                  }
                   value={formData.skills}
                   onChange={handleChange}
                   className="form-input textarea"
@@ -563,6 +754,41 @@ const EditProfile = () => {
           font-size: 12px;
           color: var(--color-text-secondary);
           margin-top: 6px;
+        }
+
+        .profile-photo-row {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .profile-photo-preview {
+          width: 92px;
+          height: 92px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 2px solid var(--color-border);
+          background: var(--color-surface-soft);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--color-text-secondary);
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .profile-photo-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .profile-photo-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          min-width: 260px;
         }
 
         @media (max-width: 768px) {
